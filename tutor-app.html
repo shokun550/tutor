@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ตารางติว</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap');
+:root {
+  --page-bg:#15131F; --sidebar-bg:#1D1930; --surface:#211D35; --input-bg:#272143;
+  --border: rgba(255,255,255,0.10); --ink:#F3F1FB; --ink-soft:#9C96BF; --ink-faint:#6E6893; --pink:#F0357C;
+  --purple:#8B7CF6; --orange:#FB923C; --teal:#2DD4BF; --green:#34D399; --rose:#FB7185;
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--page-bg); color:var(--ink); font-family:'Noto Sans Thai',sans-serif; }
+h1,h2,h3,h4 { font-family:'Kanit',sans-serif; margin:0; }
+button { font-family:inherit; cursor:pointer; border:none; background:none; color:inherit; }
+input, select { font-family:inherit; }
+svg.icon { width:1em; height:1em; vertical-align:-0.15em; }
+.app-shell { display:flex; min-height:420px; }
+.sidebar { width:208px; flex-shrink:0; background:var(--sidebar-bg); padding:20px; display:flex; flex-direction:column; gap:24px; }
+.sidebar-logo { display:flex; align-items:center; gap:8px; font-size:19px; font-weight:700; }
+.sidebar-dot { width:10px;height:10px;border-radius:999px;background:var(--pink); display:inline-block; }
+.nav-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; font-size:14px; font-weight:600; color:var(--ink-soft); border-left:3px solid transparent; text-align:left; width:100%; }
+.nav-item.active { color:var(--ink); background:rgba(240,53,124,0.12); border-left:3px solid var(--pink); }
+.main { flex:1; padding:20px; max-width:720px; }
+.mobile-tabs { display:none; background:var(--sidebar-bg); border-radius:999px; padding:4px; gap:4px; margin-bottom:20px; }
+.mobile-tab-btn { padding:8px 14px; font-size:13px; font-weight:700; border-radius:999px; color:var(--ink-soft); display:flex; align-items:center; gap:6px; }
+.mobile-tab-btn.active { background:var(--pink); color:#fff; }
+@media (max-width: 639px) {
+  .sidebar { display:none; }
+  .mobile-tabs { display:inline-flex; }
+  .main { padding:14px; }
+}
+.header-row { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:4px; }
+.header-right { display:flex; align-items:center; gap:12px; }
+.date-text { color:var(--ink-soft); font-size:12.5px; }
+.subtitle { color:var(--ink-soft); font-size:13px; margin:0 0 16px; }
+.stat-row { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:12px; }
+.stat-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 16px; flex:1 1 140px; }
+.stat-label { color:var(--ink-soft); font-size:12px; font-weight:700; }
+.stat-value { font-family:'Kanit',sans-serif; font-size:24px; font-weight:700; }
+.offender-banner { background:rgba(251,113,133,0.15); border:1px solid rgba(251,113,133,0.4); border-radius:12px; padding:10px 14px; display:flex; align-items:center; gap:8px; color:var(--rose); font-size:13px; font-weight:600; margin-bottom:20px; }
+.primary-btn { background:var(--pink); color:#fff; padding:10px 18px; border-radius:999px; font-size:14px; font-weight:700; display:inline-flex; align-items:center; gap:6px; }
+.primary-btn:hover { opacity:0.9; }
+.ghost-btn { border:1px solid var(--border); color:var(--ink); padding:8px 14px; border-radius:999px; font-size:13px; display:inline-flex; align-items:center; gap:6px; background:transparent; }
+.ghost-btn:hover { background:rgba(255,255,255,0.06); }
+.icon-btn { padding:4px; color:var(--ink-soft); }
+.icon-btn:hover { opacity:0.7; }
+.schedule-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:16px; }
+.week-label { font-family:'Kanit',sans-serif; font-size:15px; }
+.day-block { margin-bottom:16px; }
+.day-label { font-size:13px; font-weight:600; color:var(--ink-soft); margin-bottom:6px; }
+.day-label.today { color:var(--pink); font-weight:700; }
+.empty-day { color:var(--ink-faint); font-size:13px; padding-left:4px; margin-bottom:4px; }
+.session-row { border:1px solid var(--border); border-radius:12px; background:var(--surface); padding:12px; margin-bottom:8px; }
+.session-row.cancelled { opacity:0.5; }
+.session-main { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.session-time { font-variant-numeric:tabular-nums; font-weight:700; font-size:14px; }
+.session-name.strike { text-decoration:line-through; }
+.badge { border-radius:999px; padding:2px 9px; font-size:11px; font-weight:700; color:#15131F; }
+.session-actions { display:flex; align-items:center; gap:2px; margin-left:auto; }
+.session-actions button { padding:4px; }
+.session-actions button:hover { opacity:0.7; }
+.reopen-btn { color:var(--ink-soft); font-size:12px; }
+.reschedule-note { margin-top:6px; margin-left:2px; font-size:12px; display:flex; align-items:center; gap:4px; }
+.student-grid { display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); }
+.student-card { border:1px solid var(--border); border-radius:14px; background:var(--surface); padding:16px; }
+.student-card-top { display:flex; align-items:start; justify-content:space-between; }
+.student-card-top button:hover { opacity:0.7; }
+.student-name { font-family:'Kanit',sans-serif; font-weight:700; font-size:15px; }
+.student-meta { margin-top:8px; display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink-soft); }
+.student-late { margin-top:10px; font-size:12.5px; display:flex; align-items:center; gap:4px; color:var(--ink-soft); }
+.student-late.warn { color:var(--rose); }
+.payment-section { margin-bottom:24px; }
+.payment-section-title { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.payment-card { border:1px solid var(--border); border-radius:12px; background:var(--surface); padding:12px; margin-bottom:8px; }
+.payment-card-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+.add-period-btn { color:var(--pink); font-size:12.5px; font-weight:600; display:inline-flex; align-items:center; gap:4px; }
+.add-period-btn:hover { opacity:0.7; }
+.payment-row { display:flex; align-items:center; gap:8px; padding:4px 0; }
+.checkbox-btn { width:19px; height:19px; border-radius:6px; flex-shrink:0; border:1.5px solid var(--border); background:transparent; display:flex; align-items:center; justify-content:center; }
+.checkbox-btn.checked { background:var(--teal); border:none; }
+.payment-label { font-size:13.5px; }
+.payment-label.paid { color:var(--ink-soft); text-decoration:line-through; }
+.payment-amount { font-size:13px; color:var(--ink-soft); }
+.faint-text { color:var(--ink-faint); font-size:12.5px; }
+.trash-btn { color:var(--ink-faint); margin-left:auto; }
+.trash-btn:hover { opacity:0.7; }
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:40; display:flex; align-items:center; justify-content:center; padding:16px; }
+.modal-box { background:var(--surface); border:1px solid var(--border); border-radius:18px; max-width:420px; width:100%; padding:20px; }
+.modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.field { margin-bottom:12px; }
+.field label { display:block; margin-bottom:4px; color:var(--ink-soft); font-size:13px; }
+.field input, .field select { width:100%; padding:9px 12px; border-radius:10px; border:1px solid var(--border); background:var(--input-bg); color:var(--ink); font-size:14px; }
+.error-text { color:var(--rose); font-size:12.5px; margin-top:4px; }
+.modal-actions { display:flex; justify-content:flex-end; gap:8px; }
+.reset-link { font-size:12px; color:var(--ink-faint); background:none; }
+.reset-link:hover { opacity:0.8; }
+.reset-link.confirm { color:var(--rose); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const THAI_MONTHS = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const THAI_MONTHS_FULL = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const THAI_DAYS = ['อา','จ','อ','พ','พฤ','ศ','ส'];
+const LATE_NOTICE_HOURS = 24;
+const PLAN_LABELS = { monthly: 'รายเดือน', weekly: 'รายสัปดาห์', daily: 'รายวัน' };
+const PLAN_COLORS = { monthly: '#8B7CF6', weekly: '#FB923C', daily: '#2DD4BF' };
+const STUDENT_COLORS = ['#8B7CF6', '#FB923C', '#2DD4BF', '#F0357C', '#60A5FA', '#A3E635', '#FB7185', '#FBBF24'];
+
+let state = {
+  loaded: false,
+  students: [], sessions: [], payments: [], rescheduleLog: [],
+  tab: 'schedule',
+  weekStart: startOfWeek(new Date()),
+  modal: null,
+  confirmReset: false,
+};
+
+function uid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function toDateStr(d) { const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
+function parseDateStr(s) { const [y,m,d]=s.split('-').map(Number); return new Date(y, m-1, d); }
+function fmtShort(dateStr) { const d=parseDateStr(dateStr); return `${THAI_DAYS[d.getDay()]} ${d.getDate()} ${THAI_MONTHS[d.getMonth()]}`; }
+function fmtFull(dateStr) { const d=parseDateStr(dateStr); return `${d.getDate()} ${THAI_MONTHS_FULL[d.getMonth()]} ${d.getFullYear()+543}`; }
+function startOfWeek(date) { const d=new Date(date); const day=d.getDay(); const diff=day===0?-6:1-day; d.setDate(d.getDate()+diff); d.setHours(0,0,0,0); return d; }
+function addDays(date, n) { const d=new Date(date); d.setDate(d.getDate()+n); return d; }
+function combineDateTime(dateStr, timeStr) { const [h,m]=timeStr.split(':').map(Number); const d=parseDateStr(dateStr); d.setHours(h,m,0,0); return d; }
+
+function nextMonthlyLabel(studentId) {
+  const existing = state.payments.filter(p => p.studentId === studentId && p.plan === 'monthly').length;
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth() + existing, 1);
+  return `${THAI_MONTHS_FULL[d.getMonth()]} ${d.getFullYear()+543}`;
+}
+function nextWeeklyLabel(studentId) {
+  const existing = state.payments.filter(p => p.studentId === studentId && p.plan === 'weekly').length;
+  const base = startOfWeek(new Date());
+  const start = addDays(base, existing*7);
+  const end = addDays(start, 6);
+  const f = (d) => `${d.getDate()}/${d.getMonth()+1}`;
+  return `สัปดาห์ ${f(start)} - ${f(end)} ${end.getFullYear()+543}`;
+}
+
+function buildDemoData() {
+  const today = new Date();
+  const todayStr = toDateStr(today);
+  const yesterdayStr = toDateStr(addDays(today, -1));
+  const tomorrowStr = toDateStr(addDays(today, 1));
+  const twoDaysAgoStr = toDateStr(addDays(today, -2));
+  const miu = { id: uid(), name: 'น้องมิว', plan: 'monthly', rate: 1500 };
+  const palm = { id: uid(), name: 'น้องปาล์ม', plan: 'weekly', rate: 400 };
+  const paeng = { id: uid(), name: 'น้องแป้ง', plan: 'daily', rate: 300 };
+  const boll = { id: uid(), name: 'น้องบอล', plan: 'monthly', rate: 1800 };
+  const students = [miu, palm, paeng, boll];
+  const bollSessionId = uid();
+  const sessions = [
+    { id: uid(), studentId: miu.id, date: todayStr, time: '16:00', status: 'scheduled', paid: false, rescheduledFrom: null },
+    { id: uid(), studentId: palm.id, date: todayStr, time: '18:00', status: 'scheduled', paid: false, rescheduledFrom: null },
+    { id: uid(), studentId: paeng.id, date: tomorrowStr, time: '17:00', status: 'scheduled', paid: false, rescheduledFrom: null },
+    { id: uid(), studentId: paeng.id, date: yesterdayStr, time: '17:00', status: 'completed', paid: true, rescheduledFrom: null },
+    { id: uid(), studentId: miu.id, date: yesterdayStr, time: '16:00', status: 'completed', paid: false, rescheduledFrom: null },
+    { id: uid(), studentId: palm.id, date: twoDaysAgoStr, time: '18:00', status: 'cancelled', paid: false, rescheduledFrom: null },
+    { id: bollSessionId, studentId: boll.id, date: todayStr, time: '19:00', status: 'scheduled', paid: false, rescheduledFrom: { date: yesterdayStr, time: '17:00', noticeHours: 5, late: true } },
+  ];
+  const monthLabel = `${THAI_MONTHS_FULL[today.getMonth()]} ${today.getFullYear()+543}`;
+  const curWeekStart = startOfWeek(today);
+  const prevWeekStart = addDays(curWeekStart, -7);
+  const wf = (d) => `${d.getDate()}/${d.getMonth()+1}`;
+  const curWeekLabel = `สัปดาห์ ${wf(curWeekStart)} - ${wf(addDays(curWeekStart,6))} ${addDays(curWeekStart,6).getFullYear()+543}`;
+  const prevWeekLabel = `สัปดาห์ ${wf(prevWeekStart)} - ${wf(addDays(prevWeekStart,6))} ${addDays(prevWeekStart,6).getFullYear()+543}`;
+  const payments = [
+    { id: uid(), studentId: miu.id, plan: 'monthly', label: monthLabel, amount: 1500, paid: true, paidAt: new Date().toISOString() },
+    { id: uid(), studentId: boll.id, plan: 'monthly', label: monthLabel, amount: 1800, paid: false, paidAt: null },
+    { id: uid(), studentId: palm.id, plan: 'weekly', label: prevWeekLabel, amount: 400, paid: true, paidAt: new Date().toISOString() },
+    { id: uid(), studentId: palm.id, plan: 'weekly', label: curWeekLabel, amount: 400, paid: false, paidAt: null },
+  ];
+  const rescheduleLog = [
+    { id: uid(), studentId: boll.id, sessionId: bollSessionId, fromDate: twoDaysAgoStr, fromTime: '15:00', toDate: yesterdayStr, toTime: '17:00', noticeHours: 3, late: true, changedAt: new Date().toISOString() },
+    { id: uid(), studentId: boll.id, sessionId: bollSessionId, fromDate: yesterdayStr, fromTime: '17:00', toDate: todayStr, toTime: '19:00', noticeHours: 5, late: true, changedAt: new Date().toISOString() },
+  ];
+  return { students, sessions, payments, rescheduleLog };
+}
+
+const ICON_PATHS = {
+  calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+  users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  wallet: '<path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/>',
+  plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  x: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+  check: '<polyline points="20 6 9 17 4 12"/>',
+  alert: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+  chevleft: '<polyline points="15 18 9 12 15 6"/>',
+  chevright: '<polyline points="9 18 15 12 9 6"/>',
+  trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/>',
+  refresh: '<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>',
+  checkcircle: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 17.01"/>',
+  xcircle: '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>',
+  clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+};
+function icon(name, size) {
+  size = size || 16;
+  return `<svg class="icon" style="width:${size}px;height:${size}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON_PATHS[name] || ''}</svg>`;
+}
+
+async function persist() {
+  try {
+    if (window.storage) {
+      await window.storage.set('tutor-app-data', JSON.stringify({
+        students: state.students, sessions: state.sessions, payments: state.payments, rescheduleLog: state.rescheduleLog
+      }), false);
+    }
+  } catch (e) { /* saving to cloud storage is best-effort only; ignore failures silently */ }
+}
+
+async function init() {
+  let hasData = false;
+  try {
+    if (window.storage) {
+      const res = await window.storage.get('tutor-app-data', false);
+      if (res && res.value) {
+        const data = JSON.parse(res.value);
+        state.students = data.students || [];
+        state.sessions = data.sessions || [];
+        state.payments = data.payments || [];
+        state.rescheduleLog = data.rescheduleLog || [];
+        hasData = true;
+      }
+    }
+  } catch (e) { /* no saved data yet */ }
+  if (!hasData) {
+    const demo = buildDemoData();
+    state.students = demo.students;
+    state.sessions = demo.sessions;
+    state.payments = demo.payments;
+    state.rescheduleLog = demo.rescheduleLog;
+  }
+  state.loaded = true;
+  render();
+}
+
+/* ---------- actions ---------- */
+function setTab(t) { state.tab = t; render(); }
+function changeWeek(deltaDays) { state.weekStart = addDays(state.weekStart, deltaDays); render(); }
+function goToday() { state.weekStart = startOfWeek(new Date()); render(); }
+
+function openAddStudentModal() { state.modal = { type: 'addStudent', error: '', draftName: '', draftPlan: 'monthly', draftRate: '' }; render(); }
+function openAddSessionModal() { state.modal = { type: 'addSession' }; render(); }
+function openRescheduleModal(sessionId) { state.modal = { type: 'reschedule', sessionId }; render(); }
+function closeModal() { state.modal = null; render(); }
+
+function submitAddStudent() {
+  const nameEl = document.getElementById('student-name-input');
+  const name = nameEl.value.trim();
+  const plan = document.getElementById('student-plan-input').value;
+  const rate = Number(document.getElementById('student-rate-input').value) || 0;
+  if (!name) {
+    state.modal.error = 'กรอกชื่อน้องก่อนนะ';
+    state.modal.draftPlan = plan;
+    state.modal.draftRate = document.getElementById('student-rate-input').value;
+    render();
+    return;
+  }
+  state.students.push({ id: uid(), name, plan, rate });
+  state.modal = null;
+  render();
+  persist();
+}
+
+function submitAddSession() {
+  const studentId = document.getElementById('session-student-input').value;
+  const date = document.getElementById('session-date-input').value;
+  const time = document.getElementById('session-time-input').value;
+  if (!studentId || !date || !time) return;
+  state.sessions.push({ id: uid(), studentId, date, time, status: 'scheduled', paid: false, rescheduledFrom: null });
+  state.modal = null;
+  render();
+  persist();
+}
+
+function submitReschedule() {
+  const sessionId = state.modal.sessionId;
+  const session = state.sessions.find(s => s.id === sessionId);
+  if (!session) { state.modal = null; render(); return; }
+  const newDate = document.getElementById('reschedule-date-input').value;
+  const newTime = document.getElementById('reschedule-time-input').value;
+  if (!newDate || !newTime) return;
+  const originalDT = combineDateTime(session.date, session.time);
+  const now = new Date();
+  const noticeHours = (originalDT - now) / 3600000;
+  const late = noticeHours < LATE_NOTICE_HOURS;
+  state.rescheduleLog.push({ id: uid(), studentId: session.studentId, sessionId: session.id, fromDate: session.date, fromTime: session.time, toDate: newDate, toTime: newTime, noticeHours, late, changedAt: now.toISOString() });
+  session.rescheduledFrom = { date: session.date, time: session.time, noticeHours, late };
+  session.date = newDate;
+  session.time = newTime;
+  session.status = 'scheduled';
+  state.modal = null;
+  render();
+  persist();
+}
+
+function deleteStudent(id) {
+  state.students = state.students.filter(s => s.id !== id);
+  state.sessions = state.sessions.filter(s => s.studentId !== id);
+  state.payments = state.payments.filter(p => p.studentId !== id);
+  state.rescheduleLog = state.rescheduleLog.filter(r => r.studentId !== id);
+  render();
+  persist();
+}
+function completeSession(id) { const s = state.sessions.find(x=>x.id===id); if (s) s.status='completed'; render(); persist(); }
+function cancelSession(id) { const s = state.sessions.find(x=>x.id===id); if (s) s.status='cancelled'; render(); persist(); }
+function reopenSession(id) { const s = state.sessions.find(x=>x.id===id); if (s) s.status='scheduled'; render(); persist(); }
+function togglePaymentPaid(id) { const p = state.payments.find(x=>x.id===id); if (p) { p.paid=!p.paid; p.paidAt = p.paid ? new Date().toISOString() : null; } render(); persist(); }
+function deletePayment(id) { state.payments = state.payments.filter(p=>p.id!==id); render(); persist(); }
+function addPaymentPeriod(studentId) {
+  const student = state.students.find(s=>s.id===studentId);
+  if (!student) return;
+  const label = student.plan === 'monthly' ? nextMonthlyLabel(studentId) : nextWeeklyLabel(studentId);
+  state.payments.push({ id: uid(), studentId, plan: student.plan, label, amount: student.rate, paid: false, paidAt: null });
+  render();
+  persist();
+}
+function toggleSessionPaid(id) { const s = state.sessions.find(x=>x.id===id); if (s) s.paid = !s.paid; render(); persist(); }
+function handleResetAll() {
+  if (!state.confirmReset) { state.confirmReset = true; render(); return; }
+  state.students = []; state.sessions = []; state.payments = []; state.rescheduleLog = [];
+  state.confirmReset = false;
+  render();
+  persist();
+}
+
+/* ---------- render ---------- */
+function render() {
+  const root = document.getElementById('root');
+  if (!state.loaded) { root.innerHTML = `<div style="padding:40px;color:var(--ink-soft)">กำลังโหลด...</div>`; return; }
+  const tabs = [ { key:'schedule', label:'ตารางสอน', icon:'calendar' }, { key:'students', label:'นักเรียน', icon:'users' }, { key:'payments', label:'การเงิน', icon:'wallet' } ];
+  const tabTitles = { schedule:'ตารางสอน', students:'นักเรียน', payments:'การเงิน' };
+
+  const sidebarNav = tabs.map(t => `
+    <button type="button" class="nav-item ${state.tab===t.key?'active':''}" onclick="setTab('${t.key}')">${icon(t.icon,17)} ${esc(t.label)}</button>
+  `).join('');
+
+  const mobileNav = tabs.map(t => `
+    <button type="button" class="mobile-tab-btn ${state.tab===t.key?'active':''}" onclick="setTab('${t.key}')">${icon(t.icon,15)} ${esc(t.label)}</button>
+  `).join('');
+
+  root.innerHTML = `
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="sidebar-logo"><span class="sidebar-dot"></span> ตารางติว</div>
+        <nav style="display:flex;flex-direction:column;gap:4px;">${sidebarNav}</nav>
+      </aside>
+      <main class="main">
+        <div class="mobile-tabs">${mobileNav}</div>
+        <div class="header-row">
+          <h2 style="font-size:22px;">${esc(tabTitles[state.tab])}</h2>
+          <div class="header-right">
+            <span class="date-text">${fmtFull(toDateStr(new Date()))}</span>
+            <button type="button" class="reset-link ${state.confirmReset?'confirm':''}" onclick="handleResetAll()">${state.confirmReset ? 'กดอีกครั้งเพื่อล้างข้อมูล' : 'ล้างข้อมูลตัวอย่าง'}</button>
+          </div>
+        </div>
+        <p class="subtitle">จัดตารางสอน ติดตามการเลื่อนเวลา และเช็คการชำระเงินในที่เดียว</p>
+        ${renderStatBar()}
+        ${state.tab==='schedule' ? renderScheduleTab() : ''}
+        ${state.tab==='students' ? renderStudentsTab() : ''}
+        ${state.tab==='payments' ? renderPaymentsTab() : ''}
+      </main>
+    </div>
+    ${state.modal ? renderModal() : ''}
+  `;
+}
+
+function renderStatBar() {
+  const weekEnd = addDays(state.weekStart, 6);
+  const weekSessions = state.sessions.filter(s => { const d=parseDateStr(s.date); return d>=state.weekStart && d<=weekEnd && s.status!=='cancelled'; });
+  const unpaidPeriod = state.payments.filter(p=>!p.paid).length;
+  const unpaidDaily = state.sessions.filter(s => { const st=state.students.find(x=>x.id===s.studentId); return st && st.plan==='daily' && !s.paid && s.status!=='cancelled'; }).length;
+  const offenders = state.students.map(st => ({ st, late: state.rescheduleLog.filter(r=>r.studentId===st.id && r.late).length })).filter(x=>x.late>=2).sort((a,b)=>b.late-a.late);
+  return `
+    <div class="stat-row">
+      <div class="stat-card"><div class="stat-label">นักเรียนทั้งหมด</div><div class="stat-value" style="color:var(--purple)">${state.students.length}</div></div>
+      <div class="stat-card"><div class="stat-label">คาบสอนสัปดาห์นี้</div><div class="stat-value" style="color:var(--teal)">${weekSessions.length}</div></div>
+      <div class="stat-card"><div class="stat-label">ค้างชำระ</div><div class="stat-value" style="color:var(--orange)">${unpaidPeriod+unpaidDaily}</div></div>
+    </div>
+    ${offenders.length>0 ? `<div class="offender-banner">${icon('alert',15)} เลื่อนกะทันหันบ่อย: ${offenders.map(o=>`${esc(o.st.name)} (${o.late})`).join(', ')}</div>` : ''}
+  `;
+}
+
+function renderScheduleTab() {
+  const days = Array.from({length:7}, (_,i) => addDays(state.weekStart, i));
+  const weekEnd = addDays(state.weekStart, 6);
+  const dayBlocks = days.map(day => {
+    const dStr = toDateStr(day);
+    const daySessions = state.sessions.filter(s=>s.date===dStr).sort((a,b)=>a.time.localeCompare(b.time));
+    const isToday = dStr === toDateStr(new Date());
+    const rows = daySessions.length===0
+      ? `<div class="empty-day">ไม่มีคาบเรียน</div>`
+      : daySessions.map(s => renderSessionRow(s)).join('');
+    return `
+      <div class="day-block">
+        <div class="day-label ${isToday?'today':''}">${fmtShort(dStr)} ${isToday?'· วันนี้':''}</div>
+        ${rows}
+      </div>
+    `;
+  }).join('');
+  return `
+    <div class="schedule-toolbar">
+      <button type="button" class="ghost-btn" onclick="changeWeek(-7)">${icon('chevleft',15)} สัปดาห์ก่อน</button>
+      <span class="week-label">${fmtFull(toDateStr(state.weekStart))} – ${fmtFull(toDateStr(weekEnd))}</span>
+      <button type="button" class="ghost-btn" onclick="changeWeek(7)">สัปดาห์ถัดไป ${icon('chevright',15)}</button>
+      <button type="button" class="ghost-btn" onclick="goToday()">วันนี้</button>
+      <button type="button" class="primary-btn" style="margin-left:auto" onclick="openAddSessionModal()">${icon('plus',15)} เพิ่มคาบเรียน</button>
+    </div>
+    ${dayBlocks}
+  `;
+}
+
+function renderSessionRow(s) {
+  const student = state.students.find(st=>st.id===s.studentId);
+  const idx = state.students.findIndex(st=>st.id===s.studentId);
+  const colorHex = STUDENT_COLORS[idx>=0 ? idx % STUDENT_COLORS.length : 0];
+  const isCancelled = s.status==='cancelled';
+  const isCompleted = s.status==='completed';
+  let badges = '';
+  if (student) badges += `<span class="badge" style="background:${PLAN_COLORS[student.plan]}">${esc(PLAN_LABELS[student.plan])}</span>`;
+  if (isCompleted) badges += `<span class="badge" style="background:#34D399">เรียนแล้ว</span>`;
+  if (isCancelled) badges += `<span class="badge" style="background:#FB7185">ยกเลิก</span>`;
+  let actions = '';
+  if (s.status === 'scheduled') {
+    actions = `
+      <button type="button" title="เรียนแล้ว" style="color:#34D399" onclick="completeSession('${s.id}')">${icon('checkcircle',18)}</button>
+      <button type="button" title="เลื่อนเวลา" style="color:#FB923C" onclick="openRescheduleModal('${s.id}')">${icon('refresh',17)}</button>
+      <button type="button" title="ยกเลิก" style="color:#FB7185" onclick="cancelSession('${s.id}')">${icon('xcircle',18)}</button>
+    `;
+  } else {
+    actions = `<button type="button" class="reopen-btn" onclick="reopenSession('${s.id}')">เปลี่ยนกลับ</button>`;
+  }
+  const noteBlock = s.rescheduledFrom ? `
+    <div class="reschedule-note" style="color:${s.rescheduledFrom.late ? '#FB7185' : '#2DD4BF'}">
+      ${icon(s.rescheduledFrom.late ? 'alert' : 'clock', 13)}
+      <span>เลื่อนจาก ${fmtShort(s.rescheduledFrom.date)} ${esc(s.rescheduledFrom.time)} น. · แจ้งก่อน ${Math.max(0, Math.round(s.rescheduledFrom.noticeHours))} ชม.${s.rescheduledFrom.late ? ' (กะทันหัน)' : ''}</span>
+    </div>` : '';
+  return `
+    <div class="session-row ${isCancelled?'cancelled':''}" style="border-left:4px solid ${colorHex}">
+      <div class="session-main">
+        <span class="session-time">${esc(s.time)}</span>
+        <span class="session-name ${isCancelled?'strike':''}">${student ? esc(student.name) : 'ไม่ทราบชื่อ'}</span>
+        ${badges}
+        <div class="session-actions">${actions}</div>
+      </div>
+      ${noteBlock}
+    </div>
+  `;
+}
+
+function renderStudentsTab() {
+  if (state.students.length === 0) {
+    return `
+      <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+        <button type="button" class="primary-btn" onclick="openAddStudentModal()">${icon('plus',15)} เพิ่มนักเรียน</button>
+      </div>
+      <p style="color:var(--ink-soft);font-size:14px;">ยังไม่มีนักเรียน กดเพิ่มนักเรียนเพื่อเริ่มต้น</p>
+    `;
+  }
+  const cards = state.students.map((s, idx) => {
+    const total = state.rescheduleLog.filter(r=>r.studentId===s.id).length;
+    const late = state.rescheduleLog.filter(r=>r.studentId===s.id && r.late).length;
+    const colorHex = STUDENT_COLORS[idx % STUDENT_COLORS.length];
+    return `
+      <div class="student-card" style="border-top:4px solid ${colorHex}">
+        <div class="student-card-top">
+          <span class="student-name">${esc(s.name)}</span>
+          <button type="button" title="ลบนักเรียน" style="color:var(--ink-faint)" onclick="deleteStudent('${s.id}')">${icon('trash',16)}</button>
+        </div>
+        <div class="student-meta">
+          <span class="badge" style="background:${PLAN_COLORS[s.plan]}">${esc(PLAN_LABELS[s.plan])}</span>
+          <span>฿${Number(s.rate||0).toLocaleString()}/รอบ</span>
+        </div>
+        <div class="student-late ${late>=2?'warn':''}">${late>=2?icon('alert',13):''}<span>เลื่อนทั้งหมด ${total} ครั้ง · กะทันหัน ${late} ครั้ง</span></div>
+      </div>
+    `;
+  }).join('');
+  return `
+    <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+      <button type="button" class="primary-btn" onclick="openAddStudentModal()">${icon('plus',15)} เพิ่มนักเรียน</button>
+    </div>
+    <div class="student-grid">${cards}</div>
+  `;
+}
+
+function renderPaymentsTab() {
+  const monthly = renderPeriodSection('รายเดือน', 'monthly');
+  const weekly = renderPeriodSection('รายสัปดาห์', 'weekly');
+  const daily = renderDailySection();
+  const empty = state.students.length===0 ? `<p style="color:var(--ink-soft);font-size:14px;">ยังไม่มีนักเรียน เพิ่มนักเรียนก่อนเพื่อเริ่มเช็คการชำระเงิน</p>` : '';
+  return monthly + weekly + daily + empty;
+}
+
+function renderPeriodSection(title, plan) {
+  const planStudents = state.students.filter(s=>s.plan===plan);
+  if (planStudents.length===0) return '';
+  const items = state.payments.filter(p=>p.plan===plan);
+  const paidCount = items.filter(p=>p.paid).length;
+  const cards = planStudents.map(s => {
+    const rows = items.filter(p=>p.studentId===s.id).sort((a,b)=> a.label > b.label ? 1 : -1);
+    const rowsHtml = rows.length===0
+      ? `<p class="faint-text">ยังไม่มีรอบเก็บเงิน</p>`
+      : rows.map(p => `
+        <div class="payment-row">
+          <button type="button" class="checkbox-btn ${p.paid?'checked':''}" onclick="togglePaymentPaid('${p.id}')">${p.paid?icon('check',13):''}</button>
+          <span class="payment-label ${p.paid?'paid':''}">${esc(p.label)}</span>
+          <span class="payment-amount">฿${Number(p.amount||0).toLocaleString()}</span>
+          <button type="button" class="trash-btn" onclick="deletePayment('${p.id}')">${icon('trash',14)}</button>
+        </div>
+      `).join('');
+    return `
+      <div class="payment-card">
+        <div class="payment-card-head">
+          <span class="student-name" style="font-size:14px;">${esc(s.name)}</span>
+          <button type="button" class="add-period-btn" onclick="addPaymentPeriod('${s.id}')">${icon('plus',13)} เพิ่มรอบ</button>
+        </div>
+        ${rowsHtml}
+      </div>
+    `;
+  }).join('');
+  return `
+    <div class="payment-section">
+      <div class="payment-section-title"><h4 style="font-size:16px;">${esc(title)}</h4><span style="color:var(--ink-soft);font-size:12.5px;">จ่ายแล้ว ${paidCount}/${items.length}</span></div>
+      ${cards}
+    </div>
+  `;
+}
+
+function renderDailySection() {
+  const dailyStudents = state.students.filter(s=>s.plan==='daily');
+  if (dailyStudents.length===0) return '';
+  const relevant = state.sessions.filter(s => { const st=state.students.find(x=>x.id===s.studentId); return st && st.plan==='daily' && s.status!=='cancelled'; });
+  const paidCount = relevant.filter(s=>s.paid).length;
+  const cards = dailyStudents.map(s => {
+    const rows = relevant.filter(x=>x.studentId===s.id).sort((a,b)=> a.date < b.date ? 1 : -1);
+    const rowsHtml = rows.length===0
+      ? `<p class="faint-text" style="margin-top:4px;">ยังไม่มีคาบเรียน</p>`
+      : `<div style="margin-top:6px;">` + rows.map(sess => `
+        <div class="payment-row">
+          <button type="button" class="checkbox-btn ${sess.paid?'checked':''}" onclick="toggleSessionPaid('${sess.id}')">${sess.paid?icon('check',13):''}</button>
+          <span class="payment-label ${sess.paid?'paid':''}">${fmtShort(sess.date)} ${esc(sess.time)} น.</span>
+          <span class="payment-amount">฿${Number(s.rate||0).toLocaleString()}</span>
+        </div>
+      `).join('') + `</div>`;
+    return `<div class="payment-card"><span class="student-name" style="font-size:14px;">${esc(s.name)}</span>${rowsHtml}</div>`;
+  }).join('');
+  return `
+    <div class="payment-section">
+      <div class="payment-section-title"><h4 style="font-size:16px;">รายวัน</h4><span style="color:var(--ink-soft);font-size:12.5px;">จ่ายแล้ว ${paidCount}/${relevant.length}</span></div>
+      ${cards}
+    </div>
+  `;
+}
+
+function renderModal() {
+  const m = state.modal;
+  let title = '', body = '';
+  if (m.type === 'addStudent') {
+    title = 'เพิ่มนักเรียน';
+    body = `
+      <div>
+        <div class="field">
+          <label>ชื่อน้อง</label>
+          <input id="student-name-input" value="${esc(m.draftName||'')}" placeholder="เช่น น้องมิว" autofocus onkeydown="if(event.key==='Enter'){submitAddStudent();}" />
+          ${m.error ? `<p class="error-text">${esc(m.error)}</p>` : ''}
+        </div>
+        <div class="field">
+          <label>รูปแบบการเก็บเงิน</label>
+          <select id="student-plan-input">
+            <option value="monthly" ${m.draftPlan==='monthly'?'selected':''}>รายเดือน</option>
+            <option value="weekly" ${m.draftPlan==='weekly'?'selected':''}>รายสัปดาห์</option>
+            <option value="daily" ${m.draftPlan==='daily'?'selected':''}>รายวัน</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>ค่าเรียนต่อรอบ (บาท)</label>
+          <input id="student-rate-input" type="number" min="0" value="${esc(m.draftRate||'')}" placeholder="0" />
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="ghost-btn" onclick="closeModal()">ยกเลิก</button>
+          <button type="button" class="primary-btn" onclick="submitAddStudent()">เพิ่มนักเรียน</button>
+        </div>
+      </div>
+    `;
+  } else if (m.type === 'addSession') {
+    title = 'เพิ่มคาบเรียน';
+    if (state.students.length === 0) {
+      body = `<p style="color:var(--ink-soft);font-size:14px;margin-bottom:16px;">ยังไม่มีนักเรียนในระบบ เพิ่มนักเรียนก่อนเพื่อจัดตารางสอน</p><div class="modal-actions"><button type="button" class="ghost-btn" onclick="closeModal()">ปิด</button></div>`;
+    } else {
+      const options = state.students.map(s => `<option value="${s.id}">${esc(s.name)} (${esc(PLAN_LABELS[s.plan])})</option>`).join('');
+      body = `
+        <div>
+          <div class="field"><label>นักเรียน</label><select id="session-student-input">${options}</select></div>
+          <div class="field"><label>วันที่</label><input id="session-date-input" type="date" value="${toDateStr(new Date())}" /></div>
+          <div class="field"><label>เวลา</label><input id="session-time-input" type="time" value="16:00" /></div>
+          <div class="modal-actions">
+            <button type="button" class="ghost-btn" onclick="closeModal()">ยกเลิก</button>
+            <button type="button" class="primary-btn" onclick="submitAddSession()">เพิ่มคาบเรียน</button>
+          </div>
+        </div>
+      `;
+    }
+  } else if (m.type === 'reschedule') {
+    title = 'เลื่อนเวลาเรียน';
+    const session = state.sessions.find(s=>s.id===m.sessionId);
+    const student = session ? state.students.find(s=>s.id===session.studentId) : null;
+    body = `
+      <div>
+        <p style="color:var(--ink-soft);font-size:14px;margin-bottom:12px;">${student?esc(student.name):'นักเรียน'} · เดิม ${session?fmtShort(session.date):''} เวลา ${session?esc(session.time):''} น.</p>
+        <div class="field"><label>วันที่ใหม่</label><input id="reschedule-date-input" type="date" value="${session?session.date:''}" /></div>
+        <div class="field"><label>เวลาใหม่</label><input id="reschedule-time-input" type="time" value="${session?session.time:''}" /></div>
+        <div class="modal-actions">
+          <button type="button" class="ghost-btn" onclick="closeModal()">ยกเลิก</button>
+          <button type="button" class="primary-btn" onclick="submitReschedule()">บันทึกการเลื่อน</button>
+        </div>
+      </div>
+    `;
+  }
+  return `
+    <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+      <div class="modal-box" onclick="event.stopPropagation()">
+        <div class="modal-header"><h3 style="font-size:18px;">${esc(title)}</h3><button type="button" class="icon-btn" onclick="closeModal()">${icon('x',20)}</button></div>
+        ${body}
+      </div>
+    </div>
+  `;
+}
+
+init();
+</script>
+</body>
+</html>
